@@ -1,85 +1,102 @@
 ﻿using System.Net.WebSockets;
+using System.Text;
 using System.Text.Json;
-using Antelcat.AspNetCore.ProtooSharp.Internals;
-using Microsoft.Extensions.Logging;
+using Antelcat.AspNetCore.WebSocket;
 
 namespace Antelcat.AspNetCore.ProtooSharp.Transports;
 
-internal class WebSocketTransport(WebSocket webSocket)
+internal class WebSocketTransport
 {
-    /*private readonly WebSocketConnection connection;
-    private readonly ILogger             logger;
-    private          string?             toString;
+    private readonly System.Net.WebSockets.WebSocket socket;
+    private readonly HttpContext                     context;
+    private readonly ILogger                         logger;
+    private          string?                         toString;
 
-    public WebSocketTransport(WebSocketConnection connection, ILogger logger) : base(logger)
+    public WebSocketTransport(System.Net.WebSockets.WebSocket socket,
+                              HttpContext context,
+                              ILogger logger)
     {
         logger.LogDebug("constructor()");
-        this.connection = connection;
-        this.logger     = logger;
+        this.socket  = socket;
+        this.context = context;
+        this.logger  = logger;
         HandleConnection();
     }
 
     public bool Closed { get; private set; }
 
-    public void Close()
+    public event Func<Task>? Close;
+
+    public event Func<Dictionary<string, object>, Task>? Message;
+
+    public async Task CloseAsync()
     {
         if (Closed) return;
         logger.LogDebug("close() | [{Connection}]", this);
         Closed = true;
-        SafeEmit("close");
-        connection.Close();
+        Close?.Invoke();
+        try
+        {
+            await socket.CloseAsync((WebSocketCloseStatus)4000, "closed by protoo-server", CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError($"{nameof(CloseAsync)}() | error closing the connection: {{Ex}}", ex);
+        }
     }
 
-    public async Task Send(object message)
+    public async Task SendAsync(object message)
     {
         ObjectDisposedException.ThrowIf(Closed, this);
         try
         {
-            await connection.SendAsync(JsonSerializer.Serialize(message));
+            await socket.SendAsync(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message)),
+                WebSocketMessageType.Text, true, CancellationToken.None);
         }
         catch (Exception ex)
         {
-            logger.LogWarning("send() failed:{Ex}", ex);
+            logger.LogWarning($"{nameof(SendAsync)}() failed:{{Ex}}", ex);
             throw;
         }
     }
-    
+
     private void HandleConnection()
     {
-        connection.Closed += async ex =>
+        var handler = new AsyncWebSocketHandler();
+        handler.Closed += async ex =>
         {
             if (Closed) return;
             Closed = true;
-            logger.LogDebug("connection 'close' event [{@Connection}, {Ex}]", connection, ex);
-            SafeEmit("close");
+            logger.LogDebug("connection 'close' event [{@Connection}, {Ex}]", socket, ex);
+            if (Close != null) await Close();
         };
 
-        connection.Message += async raw =>
+        handler.Text += async (raw, _) =>
         {
             Dictionary<string, object> message;
             try
             {
-                message = Message.Parse(raw);
+                message = Antelcat.AspNetCore.ProtooSharp.Message.Parse(raw);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex.ToString());
+                logger.LogError("{Ex}", ex);
                 return;
             }
 
-            if (ListenerCount("message") == 0)
+            if (Message == null)
             {
                 logger.LogError(
                     "no listeners for 'message' event, ignoring received message");
                 return;
             }
 
-            SafeEmit("message", message);
+            await Message(message);
         };
     }
 
 
     public override string ToString() =>
         toString ??=
-            $"{(connection.HttpContext.Request.IsHttps ? "WSS" : "WS")}:[{connection.HttpContext.Connection.RemoteIpAddress}]:{connection.HttpContext.Connection.RemotePort}";*/
+            $"{(context.Request.IsHttps ? "WSS" : "WS")}:[{context.Connection.RemoteIpAddress}]:{context.Connection.RemotePort}";
 }

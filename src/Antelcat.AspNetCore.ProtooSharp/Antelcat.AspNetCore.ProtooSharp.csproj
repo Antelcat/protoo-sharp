@@ -8,7 +8,12 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <PackageReference Include="Antelcat.AspNetCore.WebSocket" Version="0.1.1" />
       <PackageReference Include="Antelcat.NodeSharp" Version="0.1.1" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Content Remove="C:\Users\13532\.nuget\packages\antelcat.nodesharp\0.1.1\contentFiles\any\netstandard2.1\README.md" />
     </ItemGroup>
 
 </Project>

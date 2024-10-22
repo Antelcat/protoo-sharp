@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace Antelcat.AspNetCore.ProtooSharp;
 
-internal class Message
+internal static class Message
 {
     public static Dictionary<string, object> Parse(string raw)
     {

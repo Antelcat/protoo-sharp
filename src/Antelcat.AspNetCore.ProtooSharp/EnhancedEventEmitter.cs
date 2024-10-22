@@ -1,13 +1,12 @@
 ﻿using Antelcat.NodeSharp.Events;
-using Microsoft.Extensions.Logging;
 
 namespace Antelcat.AspNetCore.ProtooSharp;
 
 public class EnhancedEventEmitter : EventEmitter
 {
     private readonly ILogger logger;
-    
-    public EnhancedEventEmitter(ILogger logger)
+
+    protected EnhancedEventEmitter(ILogger logger)
     {
         this.logger  =  logger;
         MaxListeners =  int.MaxValue;

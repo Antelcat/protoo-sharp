@@ -1,6 +1,4 @@
 ﻿using Antelcat.AspNetCore.ProtooSharp.Extensions;
-using Antelcat.NodeSharp.Events;
-
 
 using Accept = System.Func<System.Threading.Tasks.Task<Antelcat.AspNetCore.ProtooSharp.Transports.WebSocketTransport?>>;
 using Reject = System.Func<int, string, System.Threading.Tasks.Task>;
@@ -8,10 +6,11 @@ using Reject = System.Func<int, string, System.Threading.Tasks.Task>;
 namespace Antelcat.AspNetCore.ProtooSharp.Transports;
 
 [Serializable]
-public class WebSocketServer(ILogger logger) : EventEmitter
+public class WebSocketServer(ILoggerFactory loggerFactory)
 {
-    private bool                 stopped;
-    private HashSet<HttpContext> connections = [];
+    private readonly ILogger              logger = loggerFactory.CreateLogger<WebSocketServer>();
+    private          bool                 stopped;
+    private          HashSet<HttpContext> connections = [];
 
     internal event Func<(HttpRequest Request, string Origin, WebSocketManager Socket), Accept, Reject, Task>? ConnectionRequest;
     
@@ -38,7 +37,7 @@ public class WebSocketServer(ILogger logger) : EventEmitter
             return;
         }
 
-        if (request.Request.Protocol.IndexOf("protoo", StringComparison.Ordinal) < 0)
+        if (request.Request.Headers.SecWebSocketProtocol != "protoo")
         {
             logger.LogWarning($"{nameof(OnRequest)}() | invalid/missing Sec-WebSocket-Protocol");
 
@@ -87,7 +86,9 @@ public class WebSocketServer(ILogger logger) : EventEmitter
                     var connection = await request.WebSockets.AcceptWebSocketAsync();
 
                     // Create a new Protoo WebSocket transport.
-                    var transport = new WebSocketTransport(connection);
+                    var transport = new WebSocketTransport(connection,
+                        request,
+                        loggerFactory.CreateLogger<WebSocketTransport>());
 
                     logger.LogDebug($"{nameof(OnRequest)}() | accept() called");
 
@@ -118,6 +119,5 @@ public class WebSocketServer(ILogger logger) : EventEmitter
             await request.Reject(500, ex.ToString());
         }
     }
-
 }
 
