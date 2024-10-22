@@ -1,0 +1,3 @@
+[submodule "protoo"]
+	path = protoo
+	url = https://github.com/versatica/protoo/
