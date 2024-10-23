@@ -1,7 +1,13 @@
-var builder = WebApplication.CreateBuilder(args);
+using Antelcat.AspNetCore.ProtooSharp;
+using Antelcat.AspNetCore.ProtooSharp.Transports;
 
-// Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+var builder = WebApplication.CreateBuilder(args);
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+
+builder.Services.AddSingleton<WebSocketServer>();
+builder.Services.AddTransient<Room>();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -15,10 +21,44 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.Map("/",async context =>
+app.UseWebSockets(new WebSocketOptions
 {
-    context.Response.StatusCode = 200;
-    await context.Response.WriteAsync("something");
+    KeepAliveInterval = TimeSpan.FromMilliseconds(60000),
 });
+app.Map("/", async context =>
+{
+    if (!context.WebSockets.IsWebSocketRequest) throw new InvalidOperationException();
+
+    await context.RequestServices.GetRequiredService<WebSocketServer>().OnRequest(context);
+});
+
+app.Services.GetRequiredService<WebSocketServer>().ConnectionRequest += async (info, accept, reject) =>
+{
+    string? peerId = info.Request.Query["peerId"];
+
+    var logger = app.Services.GetRequiredService<ILogger<Peer>>();
+    switch (peerId)
+    {
+        case null or "reject":
+        {
+            await reject(403, "Sorry!");
+            break;
+        }
+        default:
+        {
+            var transport  = await accept();
+            var serverPeer = new Peer(peerId, transport!, logger);
+            serverPeer.Request += async handler =>
+            {
+                var method = handler.Request.Request.Method;
+                Console.WriteLine(method);
+                var data   = handler.Request.WithData<Dictionary<string,string>>();
+                Console.WriteLine(data);
+                handler.Accept(new { Text = "hi!" });
+            };
+            break;
+        }
+    }
+};
 app.Run();
 

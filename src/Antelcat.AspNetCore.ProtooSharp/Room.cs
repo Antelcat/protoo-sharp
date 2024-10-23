@@ -1,46 +1,52 @@
 ﻿using System.Collections.Concurrent;
 using System.Data;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
+using Antelcat.AspNetCore.ProtooSharp.Transports;
 
 namespace Antelcat.AspNetCore.ProtooSharp;
 
 public class Room(ILoggerFactory loggerFactory)
-    : EnhancedEventEmitter(loggerFactory.CreateLogger<EnhancedEventEmitter>())
 {
     private readonly ILogger<Room> logger = loggerFactory.CreateLogger<Room>();
     
     private readonly ConcurrentDictionary<string, Peer> peers = [];
 
+    public event Func<Task>? Close;
+
     public bool Closed { get; private set; }
 
     public ICollection<Peer> Peers => peers.Values;
 
-    public void Close()
+    public async Task CloseAsync()
     {
         if (Closed) return;
-        logger.LogDebug($"{nameof(Close)}()");
+        logger.LogDebug($"{nameof(CloseAsync)}()");
         Closed = true;
-        foreach (var (id, peer) in peers)
+        foreach (var (_, peer) in peers)
         {
-            peer.Close();
+            await peer.CloseAsync();
         }
 
-        SafeEmit("close");
+        if (Close is not null)
+        {
+            await Close.Invoke();
+        }
     }
 
-    public Peer CreatePeer(string peerId, HttpContext transport)
+    public Peer CreatePeer(string peerId, WebSocketTransport? transport)
     {
         logger.LogDebug("CreatePeer() [{PeerId}, {@Transport}]", peerId, transport);
+        ArgumentNullException.ThrowIfNull(transport);
+        
         if (peers.ContainsKey(peerId))
         {
-            transport.Abort();
+            _ = transport.CloseAsync();
             throw new DuplicateNameException($"there is already a Peer with same peerId [peerId:${peerId}]");
         }
 
-        var peer = new Peer(peerId, transport, loggerFactory);
+        var peer = new Peer(peerId, transport, loggerFactory.CreateLogger<Peer>());
         peers.TryAdd(peerId, peer);
-        peer.On("close", async _ => peers.TryRemove(peerId, out var _));
+
+        peer.Close += async () => peers.TryRemove(peerId, out _);
         return peer;
     }
 

@@ -2,18 +2,19 @@
 
     <PropertyGroup>
         <OutputType>Library</OutputType>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFrameworks>net7.0;net8.0</TargetFrameworks>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <LangVersion>preview</LangVersion>
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Antelcat.AspNetCore.WebSocket" Version="0.1.1" />
-      <PackageReference Include="Antelcat.NodeSharp" Version="0.1.1" />
+        <PackageReference Include="Antelcat.AspNetCore.WebSocket" Version="0.1.2"/>
+        <InternalsVisibleTo Include="Antelcat.ProtooSharp.WebApp"/>
     </ItemGroup>
 
     <ItemGroup>
-      <Content Remove="C:\Users\13532\.nuget\packages\antelcat.nodesharp\0.1.1\contentFiles\any\netstandard2.1\README.md" />
+        <Content Remove="C:\Users\13532\.nuget\packages\antelcat.nodesharp\0.1.1\contentFiles\any\netstandard2.1\README.md"/>
     </ItemGroup>
 
 </Project>

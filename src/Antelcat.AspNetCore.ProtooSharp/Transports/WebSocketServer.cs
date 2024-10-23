@@ -83,12 +83,19 @@ public class WebSocketServer(ILoggerFactory loggerFactory)
                     replied = true;
 
                     // Get the WebSocketConnection instance.
-                    var connection = await request.WebSockets.AcceptWebSocketAsync();
+                    var subLogger     = loggerFactory.CreateLogger<WebSocketTransport>();
+                    var connection = await request.WebSockets.AcceptWebSocketAsync(new WebSocketAcceptContext
+                    {
+                        SubProtocol                  = "protoo",
+                        KeepAliveInterval            = TimeSpan.FromMilliseconds(60000),
+                        DisableServerContextTakeover = false,
+                        DangerousEnableCompression   = false
+                    });
 
                     // Create a new Protoo WebSocket transport.
                     var transport = new WebSocketTransport(connection,
                         request,
-                        loggerFactory.CreateLogger<WebSocketTransport>());
+                        subLogger);
 
                     logger.LogDebug($"{nameof(OnRequest)}() | accept() called");
 

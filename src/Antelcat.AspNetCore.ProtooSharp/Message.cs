@@ -1,17 +1,19 @@
 ﻿using System.Runtime.Serialization;
 using System.Text.Json;
+using Antelcat.AspNetCore.ProtooSharp.Extensions;
+using Antelcat.AspNetCore.ProtooSharp.Internals;
 
 namespace Antelcat.AspNetCore.ProtooSharp;
 
-internal static class Message
+
+public abstract class Message
 {
-    public static Dictionary<string, object> Parse(string raw)
+    internal static Message Parse(string raw)
     {
         JsonElement obj;
-        var         message = new Dictionary<string, object>();
         try
         {
-            var json = JsonSerializer.Deserialize<JsonDocument>(raw);
+            var json = raw.Deserialize<JsonDocument>();
             if (json is not null) obj = json.RootElement;
             else throw new SerializationException($"parse() | invalid JSON:{raw}");
         }
@@ -27,60 +29,83 @@ internal static class Message
 
         if (obj.TryGetProperty("request", out _))
         {
-            message["request"] = true;
-            if (!obj.TryGetProperty("method", out var method) || method.ValueKind != JsonValueKind.String)
+            return new RequestMessage(raw)
             {
-                throw new JsonException("parse() | missing/invalid method field");
-            }
-
-            if (!obj.TryGetProperty("id", out var id) || id.ValueKind != JsonValueKind.Number)
-            {
-                throw new JsonException("parse() | missing/invalid id field");
-            }
-
-            message[nameof(id)]     = id.GetInt32();
-            message[nameof(method)] = method.GetString()!;
-            message["data"]         = obj.TryGetProperty("data", out var data) ? data : new JsonElement();
+                Request = raw.Deserialize<RequestPayload>()!
+            };
         }
-        else if (obj.TryGetProperty("response", out _))
+
+        if (obj.TryGetProperty("response", out _))
         {
-            message["response"] = true;
-            if (!obj.TryGetProperty("id", out var id) || id.ValueKind != JsonValueKind.Number)
+            return new ResponseMessage(raw)
             {
-                throw new JsonException("parse() | missing/invalid id field");
-            }
-
-            message[nameof(id)] = id.GetInt32();
-            if (obj.TryGetProperty("ok", out var ok) && ok.ValueKind == JsonValueKind.True)
-            {
-                message[nameof(ok)] = true;
-                message["data"]     = obj.TryGetProperty("data", out var data) ? data : new JsonElement();
-            }
-            else
-            {
-                message[nameof(ok)]  = false;
-                message["errorCode"] = obj.TryGetProperty("errorCode", out var errorCode) ? errorCode.GetInt32() : -1;
-                message["errorReason"] = obj.TryGetProperty("errorReason", out var errorReason)
-                    ? errorReason.GetString() ?? string.Empty
-                    : string.Empty;
-            }
+                Response = raw.Deserialize<ResponsePayload>()!
+            };
         }
-        else if (obj.TryGetProperty("notification", out _))
+
+        if (obj.TryGetProperty("notification", out _))
         {
-            message["notification"] = true;
-            if (!obj.TryGetProperty("method", out var method) || method.ValueKind != JsonValueKind.String)
+            return new NotificationMessage(raw)
             {
-                throw new JsonException("parse() | missing/invalid method field");
-            }
-
-            message[nameof(method)] = method.GetString()!;
-            message["data"]         = obj.TryGetProperty("data", out var data) ? data : new JsonElement();
-        }
-        else
-        {
-            throw new InvalidDataException("parse() | missing request/response field");
+                Notification = raw.Deserialize<NotificationPayload>()!
+            };
         }
 
-        return message;
+        throw new InvalidDataException("parse() | missing request/response field");
+
     }
+
+    internal static RequestPayload<T> CreateRequest<T>(string method, T? data) =>
+        new()
+        {
+            Id     = Utils.GenerateRandomNumber(),
+            Method = method,
+            Data   = data
+        };
+
+    internal static ResponsePayload<T> CreateSuccessResponse<T>(RequestPayload request, T? data) =>
+        new()
+        {
+            Id   = request.Id,
+            Ok   = true,
+            Data = data
+        };
+
+    internal static ResponsePayload CreateErrorResponse(RequestPayload request, int errorCode, string errorReason) =>
+        new()
+        {
+            Id          = request.Id,
+            ErrorCode   = errorCode,
+            ErrorReason = errorReason,
+        };
+
+    internal static NotificationPayload<T> CreateNotification<T>(string method, T? data) =>
+        new()
+        {
+            Method = method,
+            Data   = data
+        };
+}
+
+
+
+public class RequestMessage(string raw) : Message
+{
+    public required RequestPayload Request { get; init; }
+
+    public RequestPayload<T>? WithData<T>() => raw.Deserialize<RequestPayload<T>>();
+}
+
+public class ResponseMessage(string raw) : Message
+{
+    public required ResponsePayload Response { get; init; }
+    
+    public ResponsePayload<T>? WithData<T>() => raw.Deserialize<ResponsePayload<T>>();
+}
+
+public class NotificationMessage(string raw) : Message
+{
+    public required NotificationPayload Notification { get; init; }
+    
+    public NotificationPayload<T>? WithData<T>() => raw.Deserialize<NotificationPayload<T>>();
 }
