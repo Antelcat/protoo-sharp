@@ -139,7 +139,7 @@ public class WebSocketTransport
     {
         if (Closed) return;
         Closed = true;
-        logger.LogDebug("connection 'close' event [{@Connection}, {Ex}]", socket, exception);
+        logger.LogDebug("connection 'close' event [{@Connection}, {Ex}]", socket, exception?.Message);
         if (Close != null) await Close();
     }
 

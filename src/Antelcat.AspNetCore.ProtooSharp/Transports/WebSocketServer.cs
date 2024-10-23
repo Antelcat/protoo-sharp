@@ -87,7 +87,7 @@ public class WebSocketServer(ILoggerFactory loggerFactory)
                     var connection = await request.WebSockets.AcceptWebSocketAsync(new WebSocketAcceptContext
                     {
                         SubProtocol                  = "protoo",
-                        KeepAliveInterval            = TimeSpan.FromMilliseconds(60000),
+                        KeepAliveInterval            = TimeSpan.FromSeconds(60),
                         DisableServerContextTakeover = false,
                         DangerousEnableCompression   = false
                     });

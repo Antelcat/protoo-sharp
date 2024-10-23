@@ -23,7 +23,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseWebSockets(new WebSocketOptions
 {
-    KeepAliveInterval = TimeSpan.FromMilliseconds(60000),
+    KeepAliveInterval = TimeSpan.FromSeconds(60),
 });
 app.Map("/", async context =>
 {
