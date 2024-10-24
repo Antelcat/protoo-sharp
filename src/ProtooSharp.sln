@@ -5,6 +5,9 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_", "_", "{52320CCA-BDF3-4B12-B513-C22D21FF1A04}"
 	ProjectSection(SolutionItems) = preProject
 		global.json = global.json
+		..\build\Build.props = ..\build\Build.props
+		Icon.png = Icon.png
+		..\README.md = ..\README.md
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Antelcat.ProtooSharp.Tests", "Antelcat.ProtooSharp.Tests\Antelcat.ProtooSharp.Tests.csproj", "{0BDA639F-2596-47DB-BAB7-CEB7796B5273}"

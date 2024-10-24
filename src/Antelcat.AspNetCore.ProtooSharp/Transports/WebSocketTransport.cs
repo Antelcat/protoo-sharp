@@ -70,69 +70,12 @@ public class WebSocketTransport
 
     private void HandleConnection()
     {
+        var handler = new AsyncWebSocketHandler();
+        handler.Text   += OnMessage;
+        handler.Closed += OnClose;
         Task.Run(async () =>
         {
-            var cancel  = new CancellationTokenSource();
-            var options = new WebSocketOptions();
-            while (socket.State == WebSocketState.Open)
-            {
-                var data   = new List<byte>();
-                var buffer = new byte[options.ReceiveBufferSize];
-                while (true)
-                {
-                    WebSocketReceiveResult result;
-                    try
-                    {
-                        result = await socket.ReceiveAsync(buffer, default);
-                    }
-                    catch (Exception e)
-                    {
-#if NET8_0_OR_GREATER
-                        await cancel.CancelAsync();
-#else
-                        cancel.Cancel();
-#endif
-                        _ = OnClose(e);
-                        return;
-                    }
-
-                    var length = result.Count;
-                    if (result.EndOfMessage)
-                    {
-                        switch (result.MessageType)
-                        {
-                            case WebSocketMessageType.Close:
-#if NET8_0_OR_GREATER
-                                await cancel.CancelAsync();
-#else
-                            cancel.Cancel();
-#endif
-                                _ = OnClose(result.ToException());
-                                return;
-                            case WebSocketMessageType.Binary:
-                                goto next;
-                            case WebSocketMessageType.Text:
-                                Span<byte> span;
-                                if (data.Count == 0) span = new Span<byte>(buffer, 0, length);
-                                else
-                                {
-#if NET8_0_OR_GREATER
-                                    data.AddRange(new ReadOnlySpan<byte>(buffer, 0, length));
-#else
-                                    data.AddRange(buffer.Take(length));
-#endif
-                                    span = CollectionsMarshal.AsSpan(data);
-                                }
-
-                                _ = OnMessage(Encoding.UTF8.GetString(span), cancel.Token);
-                                goto next;
-                        }
-                    }
-                    else data.AddRange(buffer);
-                }
-
-                next: ;
-            }
+            await handler.Handle(socket, new WebSocketOptions());
         });
     }
 

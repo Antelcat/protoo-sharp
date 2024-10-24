@@ -1,0 +1,37 @@
+<Project>
+    <PropertyGroup>
+        <IsPackable>true</IsPackable>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <Version>0.1.0</Version>
+        <Authors>Antelcat</Authors>
+        <Title>Antelcat.AspNetCore.ProtooSharp</Title>
+        <Copyright>Copyright Antelcat. All rights reserved</Copyright>
+        <Description>ported to .NET from https://github.com/versatica/protoo</Description>
+        <PackageIcon>Icon.png</PackageIcon>
+        <PackageProjectUrl>https://github.com/Antelcat/protoo-sharp</PackageProjectUrl>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageReleaseNotes>Initial</PackageReleaseNotes>
+        <PackageTags>websocket;signaling;protoo</PackageTags>
+        <RepositoryType>git</RepositoryType>
+        <RepositoryUrl>https://github.com/Antelcat/protoo-sharp.git</RepositoryUrl>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="..\Icon.png">
+            <Pack>True</Pack>
+            <PackagePath>\</PackagePath>
+            <Link>Icon.png</Link>
+        </None>
+        <None Include="..\..\README.md">
+            <Pack>True</Pack>
+            <PackagePath>\</PackagePath>
+            <Link>README.md</Link>
+        </None>
+    </ItemGroup>
+    
+    <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+        <Exec Command="copy $(ProjectDir)bin\Debug\*.nupkg ..\..\build\ /Y" />
+    </Target>
+
+</Project>
