@@ -8,6 +8,8 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <LangVersion>preview</LangVersion>
+        <Version>0.1.0.1</Version>
+        <PackageReleaseNotes>Make Peer property Id public by accidently private</PackageReleaseNotes>
     </PropertyGroup>
 
     <ItemGroup>

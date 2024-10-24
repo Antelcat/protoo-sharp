@@ -4,9 +4,9 @@ namespace Antelcat.AspNetCore.ProtooSharp;
 
 public class Peer
 {
-    private string                     Id     { get; }
-    public  bool                       Closed { get; private set; }
-    public  Dictionary<string, object> Data   { get; } = [];
+    public string                     Id     { get; }
+    public bool                       Closed { get; private set; }
+    public Dictionary<string, object> Data   { get; } = [];
     
     private readonly ILogger               logger;
     private readonly Dictionary<int, Sent> sents = [];

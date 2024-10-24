@@ -5,9 +5,8 @@ namespace Antelcat.AspNetCore.ProtooSharp;
 
 public class Room(ILoggerFactory loggerFactory)
 {
-    private readonly ILogger<Room> logger = loggerFactory.CreateLogger<Room>();
-    
-    private readonly ConcurrentDictionary<string, Peer> peers = [];
+    private readonly ILogger<Room>                      logger = loggerFactory.CreateLogger<Room>();
+    private readonly ConcurrentDictionary<string, Peer> peers  = [];
 
     public event Func<Task>? Close;
 
