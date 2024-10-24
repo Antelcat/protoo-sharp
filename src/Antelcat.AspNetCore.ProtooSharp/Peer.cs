@@ -1,5 +1,4 @@
 ﻿using Antelcat.AspNetCore.ProtooSharp.Extensions;
-using Antelcat.AspNetCore.ProtooSharp.Transports;
 
 namespace Antelcat.AspNetCore.ProtooSharp;
 
@@ -34,7 +33,7 @@ public class Peer
         await transport.CloseAsync();
         foreach (var (key, value) in sents)
         {
-            //value.Close()?
+            value.Close();
         }
 
         if (Close != null)
@@ -43,7 +42,7 @@ public class Peer
         }
     }
 
-    public async Task<Task> RequestAsync<T>(string method, T? data = default)
+    public async Task<ResponseMessage> RequestAsync<T>(string method, T? data = default)
     {
         var request = Message.CreateRequest(method, data);
         logger.LogDebug($"{nameof(RequestAsync)}() [{{Method}}, {{Id}}]", method, request.Id);
@@ -80,7 +79,7 @@ public class Peer
             }
         };
         sents.Add(request.Id, sent);
-        return ret.Task;
+        return await ret.Task;
     }
 
     public async Task NotifyAsync<T>(string method, T? data = default)
@@ -170,19 +169,23 @@ public class Peer
     {
         public RequestMessage Request => request;
 
-        public void Accept<T>(T data)
+        public Task AcceptAsync<T>(T data)
         {
             var response = Message.CreateSuccessResponse(request.Request, data);
 
-            transport.SendAsync(response).Catch(_ => { });
+            return transport.SendAsync(response);
         }
 
-        public void Reject(int errorCode, string errorReason)
+        public void Accept<T>(T data) => AcceptAsync(data).Catch(_ => { });
+
+        public async Task RejectAsync(int errorCode, string errorReason)
         {
             var response = Message.CreateErrorResponse(request.Request, errorCode, errorReason);
 
-            transport.SendAsync(response).Catch(_ => { });
+            await transport.SendAsync(response);
         }
+
+        public void Reject(int errorCode, string errorReason) => RejectAsync(errorCode, errorReason).Catch(_ => { });
     }
 
     private class Sent

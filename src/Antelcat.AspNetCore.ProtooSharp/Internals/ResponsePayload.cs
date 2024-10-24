@@ -4,7 +4,8 @@ namespace Antelcat.AspNetCore.ProtooSharp.Internals;
 
 public record ResponsePayload
 {
-    public required int Id { get; set; }
+    public          bool Response => true;
+    public required int  Id       { get; set; }
 
     [MemberNotNullWhen(false, nameof(ErrorCode), nameof(ErrorReason))]
     public bool Ok { get; set; }

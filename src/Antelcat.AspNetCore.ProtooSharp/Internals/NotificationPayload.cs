@@ -2,7 +2,8 @@
 
 public class NotificationPayload
 {
-    public required string Method { get; set; }
+    public          bool   Notification => true;
+    public required string Method       { get; set; }
 }
 
 public class NotificationPayload<T> : NotificationPayload

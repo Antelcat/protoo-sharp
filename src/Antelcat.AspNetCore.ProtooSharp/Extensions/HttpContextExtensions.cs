@@ -1,6 +1,6 @@
 ﻿namespace Antelcat.AspNetCore.ProtooSharp.Extensions;
 
-public static class HttpContextExtensions
+internal static class HttpContextExtensions
 {
     public static async Task Reject(this HttpContext context, int statusCode, string text)
     {

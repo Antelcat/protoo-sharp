@@ -11,6 +11,7 @@
     <ItemGroup>
         <PackageReference Include="Antelcat.AspNetCore.WebSocket" Version="0.1.2"/>
         <InternalsVisibleTo Include="Antelcat.ProtooSharp.WebApp"/>
+        <InternalsVisibleTo Include="Antelcat.ProtooSharp.Tests"/>
     </ItemGroup>
 
     <ItemGroup>

@@ -6,7 +6,8 @@ using Antelcat.AspNetCore.WebSocket;
 using Antelcat.AspNetCore.WebSocket.Extensions;
 using WebSocketOptions = Antelcat.AspNetCore.WebSocket.WebSocketOptions;
 
-namespace Antelcat.AspNetCore.ProtooSharp.Transports;
+// ReSharper disable once CheckNamespace
+namespace Antelcat.AspNetCore.ProtooSharp;
 
 public class WebSocketTransport
 {
@@ -58,7 +59,7 @@ public class WebSocketTransport
         try
         {
             await socket.SendAsync(Encoding.UTF8.GetBytes(message.Serialize()),
-                WebSocketMessageType.Text, true, default);
+                WebSocketMessageType.Text, WebSocketMessageFlags.EndOfMessage, default);
         }
         catch (Exception ex)
         {

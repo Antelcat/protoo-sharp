@@ -1,18 +1,48 @@
-﻿using Antelcat.AspNetCore.ProtooSharp.Extensions;
-
-using Accept = System.Func<System.Threading.Tasks.Task<Antelcat.AspNetCore.ProtooSharp.Transports.WebSocketTransport?>>;
+﻿using System.Diagnostics.CodeAnalysis;
+using Antelcat.AspNetCore.ProtooSharp.Extensions;
+using Accept = System.Func<System.Threading.Tasks.Task<Antelcat.AspNetCore.ProtooSharp.WebSocketTransport?>>;
 using Reject = System.Func<int, string, System.Threading.Tasks.Task>;
 
-namespace Antelcat.AspNetCore.ProtooSharp.Transports;
+// ReSharper disable once CheckNamespace
+namespace Antelcat.AspNetCore.ProtooSharp;
 
 [Serializable]
-public class WebSocketServer(ILoggerFactory loggerFactory)
+public class WebSocketServer
 {
-    private readonly ILogger              logger = loggerFactory.CreateLogger<WebSocketServer>();
-    private          bool                 stopped;
-    private          HashSet<HttpContext> connections = [];
+    private          bool                   stopped;
+    private          HashSet<HttpContext>   connections = [];
+    private readonly WebSocketAcceptContext webSocketAcceptContext;
+    private readonly ILoggerFactory         loggerFactory;
+    private readonly ILogger                logger;
 
-    internal event Func<(HttpRequest Request, string Origin, WebSocketManager Socket), Accept, Reject, Task>? ConnectionRequest;
+    public WebSocketServer(WebApplication webApplication,
+                           [StringSyntax("route")] string pattern = "/",
+                           WebSocketAcceptContext? webSocketAcceptContext = null,
+                           Action<IEndpointConventionBuilder>? endpointBuilder = null)
+        : this(webApplication.Services.GetRequiredService<ILoggerFactory>(), webSocketAcceptContext)
+    {
+        var builder = webApplication.Map("/", OnRequest);
+        endpointBuilder?.Invoke(builder);
+    }
+
+    public WebSocketServer(ILoggerFactory loggerFactory, WebSocketAcceptContext? webSocketAcceptContext = null)
+    {
+        this.loggerFactory = loggerFactory;
+        logger             = loggerFactory.CreateLogger<WebSocketServer>();
+        this.webSocketAcceptContext = webSocketAcceptContext ?? new WebSocketAcceptContext
+        {
+            SubProtocol       = "protoo",
+            KeepAliveInterval = TimeSpan.FromSeconds(60),
+        };
+        this.webSocketAcceptContext.SubProtocol = "protoo";
+    }
+
+
+    public delegate Task ConnectionHandler((HttpRequest Request, string Origin, WebSocketManager Socket) request,
+                                           Accept accept,
+                                           Reject reject);
+    
+    public event ConnectionHandler? ConnectionRequest;
     
     public void Stop()
     {
@@ -34,6 +64,12 @@ public class WebSocketServer(ILoggerFactory loggerFactory)
         if (stopped)
         {
             request.Abort();
+            return;
+        }
+
+        if (!request.WebSockets.IsWebSocketRequest)
+        {
+            logger.LogWarning($"{nameof(OnRequest)}() | not WebSocket request");
             return;
         }
 
@@ -66,6 +102,7 @@ public class WebSocketServer(ILoggerFactory loggerFactory)
         var replied = false;
         try
         {
+            var lifeTime = new TaskCompletionSource(); //keep connection for ASP.NET lifetime
             await ConnectionRequest(
                 // Connection data.
                 (request.Request, request.Origin() ?? string.Empty, request.WebSockets),
@@ -84,18 +121,13 @@ public class WebSocketServer(ILoggerFactory loggerFactory)
 
                     // Get the WebSocketConnection instance.
                     var subLogger     = loggerFactory.CreateLogger<WebSocketTransport>();
-                    var connection = await request.WebSockets.AcceptWebSocketAsync(new WebSocketAcceptContext
-                    {
-                        SubProtocol                  = "protoo",
-                        KeepAliveInterval            = TimeSpan.FromSeconds(60),
-                        DisableServerContextTakeover = false,
-                        DangerousEnableCompression   = false
-                    });
+                    var connection = await request.WebSockets.AcceptWebSocketAsync(webSocketAcceptContext);
 
                     // Create a new Protoo WebSocket transport.
                     var transport = new WebSocketTransport(connection,
                         request,
                         subLogger);
+                    transport.Close += async () => lifeTime.SetResult();
 
                     logger.LogDebug($"{nameof(OnRequest)}() | accept() called");
 
@@ -118,8 +150,11 @@ public class WebSocketServer(ILoggerFactory loggerFactory)
                         $"{nameof(OnRequest)}() | reject() called [{{Code}} | {{Reason}}]", code, reason);
 
                     await request.Reject(code, reason);
+                    
+                    lifeTime.SetResult();
                 }
             );
+            await lifeTime.Task;
         }
         catch (Exception ex)
         {
