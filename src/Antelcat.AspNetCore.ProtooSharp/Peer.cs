@@ -4,9 +4,9 @@ namespace Antelcat.AspNetCore.ProtooSharp;
 
 public class Peer
 {
-    public string                     Id     { get; }
-    public bool                       Closed { get; private set; }
-    public Dictionary<string, object> Data   { get; } = [];
+    public string     Id     { get; }
+    public bool       Closed { get; private set; }
+    public CustomData Data   { get; } = new();
     
     private readonly ILogger               logger;
     private readonly Dictionary<int, Sent> sents = [];
@@ -196,5 +196,15 @@ public class Peer
         public required Action<ProtooException> Reject  { get; init; }
         public required Task                    Timer   { get; init; }
         public required Action                  Close   { get; init; }
+    }
+
+    public class CustomData
+    {
+        private object? data;
+
+        public void Set<T>(T data) =>
+            this.data = data ?? throw new ArgumentNullException(nameof(data));
+
+        public T As<T>() => data is T t ? t : throw new InvalidCastException($"data is not {typeof(T)}");
     }
 }

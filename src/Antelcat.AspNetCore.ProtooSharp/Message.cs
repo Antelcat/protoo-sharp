@@ -6,8 +6,10 @@ using Antelcat.AspNetCore.ProtooSharp.Internals;
 namespace Antelcat.AspNetCore.ProtooSharp;
 
 
-public abstract class Message
+public abstract class Message(string raw)
 {
+    public string Raw => raw;
+    
     internal static Message Parse(string raw)
     {
         JsonElement obj;
@@ -89,23 +91,23 @@ public abstract class Message
 
 
 
-public class RequestMessage(string raw) : Message
+public class RequestMessage(string raw) : Message(raw)
 {
     public required RequestPayload Request { get; init; }
 
-    public RequestPayload<T>? WithData<T>() => raw.Deserialize<RequestPayload<T>>();
+    public RequestPayload<T>? WithData<T>() => Raw.Deserialize<RequestPayload<T>>();
 }
 
-public class ResponseMessage(string raw) : Message
+public class ResponseMessage(string raw) : Message(raw)
 {
     public required ResponsePayload Response { get; init; }
     
-    public ResponsePayload<T>? WithData<T>() => raw.Deserialize<ResponsePayload<T>>();
+    public ResponsePayload<T>? WithData<T>() => Raw.Deserialize<ResponsePayload<T>>();
 }
 
-public class NotificationMessage(string raw) : Message
+public class NotificationMessage(string raw) : Message(raw)
 {
     public required NotificationPayload Notification { get; init; }
     
-    public NotificationPayload<T>? WithData<T>() => raw.Deserialize<NotificationPayload<T>>();
+    public NotificationPayload<T>? WithData<T>() => Raw.Deserialize<NotificationPayload<T>>();
 }
