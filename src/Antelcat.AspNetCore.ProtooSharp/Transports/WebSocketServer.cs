@@ -59,7 +59,7 @@ public class WebSocketServer
         }
     }
     
-    internal async Task OnRequest(HttpContext request)
+    public async Task OnRequest(HttpContext request)
     {
         if (stopped)
         {

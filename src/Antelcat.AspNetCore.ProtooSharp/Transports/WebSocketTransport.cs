@@ -89,7 +89,6 @@ public class WebSocketTransport
 
     private async Task OnMessage(string raw, CancellationToken token)
     {
-        Console.WriteLine(raw);
         Message message;
         try
         {
