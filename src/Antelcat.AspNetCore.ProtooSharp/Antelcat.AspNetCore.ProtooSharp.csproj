@@ -10,6 +10,8 @@
         <LangVersion>preview</LangVersion>
         
         <PackageReleaseNotes>public OnRequest handler</PackageReleaseNotes>
+        
+        <Version>0.1.5</Version>
     </PropertyGroup>
 
     <ItemGroup>
