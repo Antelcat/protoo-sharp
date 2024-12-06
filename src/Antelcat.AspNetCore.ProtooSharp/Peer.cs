@@ -202,8 +202,8 @@ public class Peer
     {
         private object? data;
 
-        public void Set<T>(T data) =>
-            this.data = data ?? throw new ArgumentNullException(nameof(data));
+        public void Set<T>(T data) => this.data = data 
+                                                  ?? throw new ArgumentNullException(nameof(data));
 
         public T As<T>() => data is T t ? t : throw new InvalidCastException($"data is not {typeof(T)}");
     }
