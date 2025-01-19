@@ -1,8 +1,13 @@
 ﻿namespace Antelcat.AspNetCore.ProtooSharp;
 
-internal static class Utils
+public static class Utils
 {
-    public static int GenerateRandomNumber() => Random.Next(0, 10000000);
+    static Utils()
+    {
+        var random = new Random();
+        RandomNumberGenerator = () => random.Next(0, 10_000_000);
+    }
 
-    private static readonly Random Random = new();
+    internal static int GenerateRandomNumber() => RandomNumberGenerator();
+    public static Func<int> RandomNumberGenerator { get; set; }
 }
